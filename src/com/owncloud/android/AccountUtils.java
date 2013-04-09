@@ -33,7 +33,7 @@ public class AccountUtils {
     public static final String WEBDAV_PATH_2_0 = "/files/webdav.php";
     public static final String WEBDAV_PATH_4_0 = "/remote.php/webdav";
     public static final String CARDDAV_PATH_2_0 = "/apps/contacts/carddav.php";
-    public static final String CARDDAV_PATH_4_0 = "/remote/carddav.php";
+    public static final String CARDDAV_PATH_4_0 = "/remote.php/carddav";
     public static final String STATUS_PATH = "/status.php";
 
     /**

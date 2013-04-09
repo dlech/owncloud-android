@@ -129,20 +129,6 @@ public abstract class AbstractOwnCloudSyncAdapter extends
         };
     }
 
-    protected HttpResponse fireRawRequest(HttpRequest query)
-            throws ClientProtocolException, OperationCanceledException,
-            AuthenticatorException, IOException {
-        /*
-         * BasicHttpContext httpContext = new BasicHttpContext(); BasicScheme
-         * basicAuth = new BasicScheme();
-         * httpContext.setAttribute("preemptive-auth", basicAuth);
-         * 
-         * HttpResponse response = getClient().execute(mHost, query,
-         * httpContext);
-         */
-        return null;
-    }
-
     protected void initClientForCurrentAccount() throws UnknownHostException {
         if (AccountUtils.constructFullURLForAccount(getContext(), account) == null) {
             throw new UnknownHostException();

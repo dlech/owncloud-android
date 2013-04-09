@@ -19,9 +19,18 @@
 
 package com.owncloud.android.syncadapter;
 
+import java.io.FileDescriptor;
 import java.io.FileInputStream;
 import java.io.IOException;
+import java.io.InputStream;
+import java.io.StringReader;
+import java.net.UnknownHostException;
 
+import org.apache.commons.httpclient.methods.ByteArrayRequestEntity;
+import org.apache.commons.httpclient.methods.PutMethod;
+import org.apache.commons.httpclient.methods.RequestEntity;
+import org.apache.commons.httpclient.methods.StringRequestEntity;
+import org.apache.http.HttpResponse;
 import org.apache.http.client.methods.HttpPut;
 import org.apache.http.entity.ByteArrayEntity;
 
@@ -40,6 +49,7 @@ import android.database.Cursor;
 import android.net.Uri;
 import android.os.Bundle;
 import android.provider.ContactsContract;
+import android.util.Log;
 
 public class ContactSyncAdapter extends AbstractOwnCloudSyncAdapter {
     private String mAddrBookUri;
@@ -52,37 +62,39 @@ public class ContactSyncAdapter extends AbstractOwnCloudSyncAdapter {
     @Override
     public void onPerformSync(Account account, Bundle extras, String authority,
             ContentProviderClient provider, SyncResult syncResult) {
+        
+        
         setAccount(account);
         setContentProvider(provider);
-        Cursor c = getLocalContacts(false);
-        if (c.moveToFirst()) {
+        try {
+            initClientForCurrentAccount();
+        } catch (UnknownHostException e) {
+            // TODO Auto-generated catch block
+            e.printStackTrace();
+            return;
+        }
+        Cursor cursor = getLocalContacts(false);
+        if (cursor.moveToFirst()) {
             do {
-                String lookup = c.getString(c
+                String lookup = cursor.getString(cursor
                         .getColumnIndex(ContactsContract.Contacts.LOOKUP_KEY));
                 String a = getAddressBookUri();
                 String uri = a + lookup + ".vcf";
-                FileInputStream f;
-                try {
-                    f = getContactVcard(lookup);
-                    HttpPut query = new HttpPut(uri);
-                    byte[] b = new byte[f.available()];
-                    f.read(b);
-                    query.setEntity(new ByteArrayEntity(b));
-                    fireRawRequest(query);
+                try {                    
+                    PutMethod put = new PutMethod(uri);
+                    put.addRequestHeader("If-None-Match", "*");
+                    String vCard = getContactVcard(lookup);
+                    Log.d("syncadapter", vCard);
+                    put.setRequestEntity(new StringRequestEntity(vCard,
+                            "text/vcard", "utf-8"));
+                    getClient().executeMethod(put);
+                    Log.d("syncadapter", put.getResponseBodyAsString());
                 } catch (IOException e) {
                     e.printStackTrace();
                     return;
-                } catch (OperationCanceledException e) {
-                    // TODO Auto-generated catch block
-                    e.printStackTrace();
-                } catch (AuthenticatorException e) {
-                    // TODO Auto-generated catch block
-                    e.printStackTrace();
                 }
-            } while (c.moveToNext());
-            // } while (c.moveToNext());
+            } while (cursor.moveToNext());
         }
-
     }
 
     private String getAddressBookUri() {
@@ -90,24 +102,29 @@ public class ContactSyncAdapter extends AbstractOwnCloudSyncAdapter {
             return mAddrBookUri;
 
         AccountManager am = getAccountManager();
-        @SuppressWarnings("deprecation")
         String uri = am.getUserData(getAccount(),
-                AccountAuthenticator.KEY_OC_URL).replace(
-                AccountUtils.WEBDAV_PATH_2_0, AccountUtils.CARDDAV_PATH_2_0);
-        uri += "/addressbooks/"
+                AccountAuthenticator.KEY_OC_BASE_URL);
+        uri += AccountUtils.CARDDAV_PATH_4_0 + "/addressbooks/"
                 + getAccount().name.substring(0,
-                        getAccount().name.lastIndexOf('@')) + "/default/";
+                        getAccount().name.lastIndexOf('@')) + "/contacts/";
         mAddrBookUri = uri;
         return uri;
     }
 
-    private FileInputStream getContactVcard(String lookupKey)
-            throws IOException {
+    private String getContactVcard(String lookupKey) throws IOException {
         Uri uri = Uri.withAppendedPath(
                 ContactsContract.Contacts.CONTENT_VCARD_URI, lookupKey);
-        AssetFileDescriptor fd = getContext().getContentResolver()
-                .openAssetFileDescriptor(uri, "r");
-        return fd.createInputStream();
+        //AssetFileDescriptor afd = getContext().getContentResolver()
+        //        .openAssetFileDescriptor( uri, "r");        
+        //FileDescriptor fd = afd.getFileDescriptor();
+        //FileInputStream fis = new FileInputStream(fd);
+        //byte[] b = new byte[(int) afd.getDeclaredLength()];
+        //fis.read(b);
+        InputStream instream = getContext().getContentResolver().openInputStream(uri);
+        byte[] b = new byte[(int) instream.available()];
+        instream.read(b, 0, 1);
+        instream.close();
+        return new String(b);
     }
 
     private Cursor getLocalContacts(boolean include_hidden_contacts) {

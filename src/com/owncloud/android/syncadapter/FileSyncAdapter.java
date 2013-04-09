@@ -274,7 +274,7 @@ public class FileSyncAdapter extends AbstractOwnCloudSyncAdapter {
     private void sendStickyBroadcast(boolean inProgress, String dirRemotePath, RemoteOperationResult result) {
         Intent i = new Intent(FileSyncService.SYNC_MESSAGE);
         i.putExtra(FileSyncService.IN_PROGRESS, inProgress);
-        i.putExtra(FileSyncService.ACCOUNT_NAME, getAccount().name);
+        i.putExtra(FileSyncService.ACCOUNT_NAME,    getAccount().name);
         if (dirRemotePath != null) {
             i.putExtra(FileSyncService.SYNC_FOLDER_REMOTE_PATH, dirRemotePath);
         }
